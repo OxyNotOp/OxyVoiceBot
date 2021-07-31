@@ -1,5 +1,10 @@
 # Telegram Voice Chat Bot with Channel Support.
 
+<p align="center">
+  <img src="https://telegra.ph/file/03f01d061f5d29e4d3830.jpg">
+</p>
+
+
 A Telegram Bot to Play Audio in Voice Chats With Youtube and Deezer support.
 Supports Live streaming from youtube
 
