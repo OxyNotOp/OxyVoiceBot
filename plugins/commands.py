@@ -75,12 +75,12 @@ You can also use /dplay <song name> to play a song from Deezer.</b>
 async def start(client, message):
     buttons = [
         [
-        InlineKeyboardButton('❤️ About Me', url='https://t.me/AboutOxy'),
-        InlineKeyboardButton('🔥 My Owner', url='https://t.me/FallenAngel_xD'),
+        InlineKeyboardButton('⚙️ About Me', url='https://t.me/AboutOxy'),
+        InlineKeyboardButton('🤖 My Owner', url='https://t.me/FallenAngel_xD'),
     ],
     [
         InlineKeyboardButton('👨🏼‍💻 Developer', url='https://t.me/FallenAngel_xD'),
-        InlineKeyboardButton('🧩 Source', url='https://github.com/OxyNotOp/OxyVCbot'),
+        InlineKeyboardButton('🧩 Source', url='https://github.com/OxyNotOp/OxyVoiceBot'),
     ],
     [
         InlineKeyboardButton('👨🏼‍🦯 Help', callback_data='help'),
@@ -98,12 +98,12 @@ async def start(client, message):
 async def show_help(client, message):
     buttons = [
         [
-            InlineKeyboardButton('❤️ About me', url='https://t.me/AboutOxy'),
+            InlineKeyboardButton('❤️ About Me', url='https://t.me/AboutOxy'),
             InlineKeyboardButton('🔥 My Owner', url='https://t.me/FallenAngel_xD'),
         ],
         [
             InlineKeyboardButton('👨🏼‍💻 Developer', url='https://t.me/FallenAngel_xD'),
-            InlineKeyboardButton('🧩 Source', url='https://github.com/OxyNotOp/OxyVCbot'),
+            InlineKeyboardButton('🧩 Source', url='https://github.com/OxyNotOp/OxyVoiceBot'),
         ]
     ]
     reply_markup = InlineKeyboardMarkup(buttons)
