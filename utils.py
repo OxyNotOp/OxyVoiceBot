@@ -35,7 +35,9 @@ import subprocess
 import asyncio
 from signal import SIGINT
 from pyrogram.raw.types import InputGroupCall
-from pyrogram.raw.functions.phone import EditGroupCallTitle
+from pyrogram.raw.functions.phone import EditGroupCallTitle, CreateGroupCall
+from random import randint
+
 bot = Client(
     "OxyVoiceBotvc",
     Config.API_ID,
@@ -53,6 +55,7 @@ CHAT=Config.CHAT
 FFMPEG_PROCESSES = {}
 ADMIN_LIST={}
 CALL_STATUS={}
+EDIT_TITLE=Config.EDIT_TITLE
 RADIO={6}
 LOG_GROUP=Config.LOG_GROUP
 DURATION_LIMIT=Config.DURATION_LIMIT
@@ -67,15 +70,6 @@ ydl_opts = {
     "outtmpl": "downloads/%(id)s.%(ext)s",
 }
 ydl = YoutubeDL(ydl_opts)
-def youtube(url: str) -> str:
-    info = ydl.extract_info(url, False)
-    duration = round(info["duration"] / 60)
-    try:
-        ydl.download([url])
-    except Exception as e:
-        print(e)
-        pass
-    return path.join("downloads", f"{info['id']}.{info['ext']}")
 
 RADIO_TITLE=os.environ.get("RADIO_TITLE", " 🎸 Music 24/7 | Radio Mode")
 if RADIO_TITLE=="NO":
@@ -113,6 +107,8 @@ class OxyVoiceBot(object):
         # remove old track from playlist
         old_track = playlist.pop(0)
         print(f"- START PLAYING: {playlist[0][1]}")
+        if EDIT_TITLE:
+            await self.edit_title()
         if LOG_GROUP:
             await self.send_playlist()
         os.remove(os.path.join(
@@ -148,7 +144,18 @@ class OxyVoiceBot(object):
             if song[3] == "telegram":
                 original_file = await bot.download_media(f"{song[2]}")
             elif song[3] == "youtube":
-                original_file = youtube(song[2])
+                url=song[2]
+                try:
+                    info = ydl.extract_info(url, False)
+                    ydl.download([url])
+                    original_file=path.join("downloads", f"{info['id']}.{info['ext']}")
+                except Exception as e:
+                    playlist.pop(1)
+                    print(f"Unable to download due to {e} and skipped.")
+                    if len(playlist) == 1:
+                        return
+                    await self.download_audio(playlist[1])
+                    return
             else:
                 original_file=wget.download(song[2])
             ffmpeg.input(original_file).output(
@@ -166,8 +173,6 @@ class OxyVoiceBot(object):
         group_call = self.group_call
         if group_call.is_connected:
             playlist.clear()   
-            group_call.input_filename = ''
-            await group_call.stop()
         process = FFMPEG_PROCESSES.get(CHAT)
         if process:
             try:
@@ -179,7 +184,7 @@ class OxyVoiceBot(object):
                 pass
             FFMPEG_PROCESSES[CHAT] = ""
         station_stream_url = STREAM_URL
-        group_call.input_filename = f'radio-{CHAT}.raw'
+        
         try:
             RADIO.remove(0)
         except:
@@ -188,11 +193,13 @@ class OxyVoiceBot(object):
             RADIO.add(1)
         except:
             pass
-        if os.path.exists(group_call.input_filename):
-            os.remove(group_call.input_filename)
+        if os.path.exists(f'radio-{CHAT}.raw'):
+            os.remove(f'radio-{CHAT}.raw')
         # credits: https://t.me/c/1480232458/6825
-        os.mkfifo(group_call.input_filename)
-        await self.start_call()
+        os.mkfifo(f'radio-{CHAT}.raw')
+        group_call.input_filename = f'radio-{CHAT}.raw'
+        if not CALL_STATUS.get(CHAT):
+            await self.start_call()
         ffmpeg_log = open("ffmpeg.log", "w+")
         command=["ffmpeg", "-y", "-i", station_stream_url, "-f", "s16le", "-ac", "2",
         "-ar", "48000", "-acodec", "pcm_s16le", group_call.input_filename]
@@ -210,13 +217,15 @@ class OxyVoiceBot(object):
             await self.edit_title()
         await sleep(2)
         while True:
+            await sleep(10)
             if CALL_STATUS.get(CHAT):
                 print("Succesfully Joined")
                 break
             else:
                 print("Connecting...")
-                await sleep(10)
+                await self.start_call()
                 continue
+
     
     async def stop_radio(self):
         group_call = self.group_call
@@ -244,7 +253,18 @@ class OxyVoiceBot(object):
 
     async def start_call(self):
         group_call = self.group_call
-        await group_call.start(CHAT)
+        try:
+            await group_call.start(CHAT)
+        except RuntimeError:
+            await USER.send(CreateGroupCall(
+                peer=(await USER.resolve_peer(CHAT)),
+                random_id=randint(10000, 999999999)
+                )
+                )
+            await group_call.start(CHAT)
+        except Exception as e:
+            print(e)
+            pass
 
     
     async def edit_title(self):
