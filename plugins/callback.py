@@ -21,37 +21,44 @@
 #SOFTWARE.
 
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from pyrogram.errors import MessageNotModified
 from pyrogram import Client, emoji
-from utils import mp
+from utils import mp, playlist
 from config import Config
-playlist=Config.playlist
+
 
 HELP = """
 
-<b>Add the bot and User account in your Group with admin rights.
-
-Start a VoiceChat
-
+<b>
 Use /play <song name> or use /play as a reply to an audio file or youtube link.
 
-You can also use /dplay <song name> to play a song from Deezer.</b>
+Use /yplay to play all the songs of a youtube playlist.
+
+You can also use <code>/splay song name</code> to play a song from Jio Saavn or <code>/splay -a album name</code> to play all the songs from a jiosaavn album or /cplay <channel username or channel id> to play music from a telegram channel.</b>
 
 **Common Commands**:
 
 **/play**  Reply to an audio file or YouTube link to play it or use /play <song name>.
-**/dplay** Play music from Deezer, Use /dplay <song name>
+**/splay** Play music from Jio Saavn, Use /splay <song name> or <code>/splay -a album name</code> to play all the songs from that album.
 **/player**  Show current playing song.
+**/upload** Uploads current playing song as audio file.
 **/help** Show help for commands
 **/playlist** Shows the playlist.
 
 **Admin Commands**:
-**/skip** [n] ...  Skip current or n where n >= 2
+**/skip** [n] ...  Skip current or n where n >= 2.
+**/cplay** Play music from a channel's music files.
+**/yplay** Play music from a youtube playlist.
 **/join**  Join voice chat.
 **/leave**  Leave current voice chat
+**/shuffle** Shuffle Playlist.
 **/vc**  Check which VC is joined.
 **/stop**  Stop playing.
 **/radio** Start Radio.
 **/stopradio** Stops Radio Stream.
+**/clearplaylist** Clear the playlist.
+**/export** Export current playlist for future use.
+**/import** Import a previously exported playlist.
 **/replay**  Play from the beginning.
 **/clean** Remove unused RAW PCM files.
 **/pause** Pause playing.
@@ -59,7 +66,7 @@ You can also use /dplay <song name> to play a song from Deezer.</b>
 **/volume** Change volume(0-200).
 **/mute**  Mute in VC.
 **/unmute**  Unmute in VC.
-**/restart**Update restarts the Bot.
+**/restart**  Update and restarts the Bot.
 """
 
 
@@ -83,109 +90,152 @@ async def cb_handler(client: Client, query: CallbackQuery):
         if not playlist:
             pl = f"{emoji.NO_ENTRY} Empty Playlist"
         else:
-            pl = f"{emoji.PLAY_BUTTON} **Playlist**:\n" + "\n".join([
-                f"**{i}**. **🎸{x[1]}**\n   👤**Requested by:** {x[4]}"
-                for i, x in enumerate(playlist)
+            if len(playlist)>=25:
+                tplaylist=playlist[:25]
+                pl=f"Listing first 25 songs of total {len(playlist)} songs.\n"
+                pl += f"{emoji.PLAY_BUTTON} **Playlist**:\n" + "\n".join([
+                    f"**{i}**. **🎸{x[1]}**\n   👤**Requested by:** {x[4]}"
+                    for i, x in enumerate(tplaylist)
+                    ])
+            else:
+                pl = f"{emoji.PLAY_BUTTON} **Playlist**:\n" + "\n".join([
+                    f"**{i}**. **🎸{x[1]}**\n   👤**Requested by:** {x[4]}\n"
+                    for i, x in enumerate(playlist)
                 ])
-        await query.edit_message_text(
-                f"{pl}",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup(
-                    [
+        try:
+            await query.edit_message_text(
+                    f"{pl}",
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup(
                         [
-                            InlineKeyboardButton("🔄", callback_data="replay"),
-                            InlineKeyboardButton("⏯", callback_data="pause"),
-                            InlineKeyboardButton("⏩", callback_data="skip")
-                            
-                        ],
-                    ]
+                            [
+                                InlineKeyboardButton("🔄", callback_data="replay"),
+                                InlineKeyboardButton("⏯", callback_data="pause"),
+                                InlineKeyboardButton("⏩", callback_data="skip")
+                            ],
+                        ]
+                    )
                 )
-            )
+        except MessageNotModified:
+            pass
 
     elif query.data == "pause":
         if not playlist:
             return
         else:
             mp.group_call.pause_playout()
-            pl = f"{emoji.PLAY_BUTTON} **Playlist**:\n" + "\n".join([
-                f"**{i}**. **🎸{x[1]}**\n   👤**Requested by:** {x[4]}"
-                for i, x in enumerate(playlist)
+            if len(playlist)>=25:
+                tplaylist=playlist[:25]
+                pl=f"Listing first 25 songs of total {len(playlist)} songs.\n"
+                pl += f"{emoji.PLAY_BUTTON} **Playlist**:\n" + "\n".join([
+                    f"**{i}**. **🎸{x[1]}**\n   👤**Requested by:** {x[4]}"
+                    for i, x in enumerate(tplaylist)
+                    ])
+            else:
+                pl = f"{emoji.PLAY_BUTTON} **Playlist**:\n" + "\n".join([
+                    f"**{i}**. **🎸{x[1]}**\n   👤**Requested by:** {x[4]}\n"
+                    for i, x in enumerate(playlist)
                 ])
-        await query.edit_message_text(f"{emoji.PLAY_OR_PAUSE_BUTTON} Paused\n\n{pl}",
-        reply_markup=InlineKeyboardMarkup(
+
+        try:
+            await query.edit_message_text(f"{emoji.PLAY_OR_PAUSE_BUTTON} Paused\n\n{pl},",
+                disable_web_page_preview=True,
+                reply_markup=InlineKeyboardMarkup(
                     [
                         [
                             InlineKeyboardButton("🔄", callback_data="replay"),
                             InlineKeyboardButton("⏯", callback_data="resume"),
                             InlineKeyboardButton("⏩", callback_data="skip")
-                            
                         ],
                     ]
                 )
             )
-
+        except MessageNotModified:
+            pass
     
     elif query.data == "resume":   
         if not playlist:
             return
         else:
             mp.group_call.resume_playout()
-            pl = f"{emoji.PLAY_BUTTON} **Playlist**:\n" + "\n".join([
-                f"**{i}**. **🎸{x[1]}**\n   👤**Requested by:** {x[4]}"
-                for i, x in enumerate(playlist)
+            if len(playlist)>=25:
+                tplaylist=playlist[:25]
+                pl=f"Listing first 25 songs of total {len(playlist)} songs.\n"
+                pl += f"{emoji.PLAY_BUTTON} **Playlist**:\n" + "\n".join([
+                    f"**{i}**. **🎸{x[1]}**\n   👤**Requested by:** {x[4]}"
+                    for i, x in enumerate(tplaylist)
+                    ])
+            else:
+                pl = f"{emoji.PLAY_BUTTON} **Playlist**:\n" + "\n".join([
+                    f"**{i}**. **🎸{x[1]}**\n   👤**Requested by:** {x[4]}\n"
+                    for i, x in enumerate(playlist)
                 ])
-        await query.edit_message_text(f"{emoji.PLAY_OR_PAUSE_BUTTON} Resumed\n\n{pl}",
-        reply_markup=InlineKeyboardMarkup(
+
+        try:
+            await query.edit_message_text(f"{emoji.PLAY_OR_PAUSE_BUTTON} Resumed\n\n{pl}",
+                disable_web_page_preview=True,
+                reply_markup=InlineKeyboardMarkup(
                     [
                         [
                             InlineKeyboardButton("🔄", callback_data="replay"),
                             InlineKeyboardButton("⏯", callback_data="pause"),
                             InlineKeyboardButton("⏩", callback_data="skip")
-                            
                         ],
                     ]
                 )
             )
+        except MessageNotModified:
+            pass
 
     elif query.data=="skip":   
         if not playlist:
             return
         else:
             await mp.skip_current_playing()
-            pl = f"{emoji.PLAY_BUTTON} **Playlist**:\n" + "\n".join([
-                f"**{i}**. **🎸{x[1]}**\n   👤**Requested by:** {x[4]}"
-                for i, x in enumerate(playlist)
+            if len(playlist)>=25:
+                tplaylist=playlist[:25]
+                pl=f"Listing first 25 songs of total {len(playlist)} songs.\n"
+                pl += f"{emoji.PLAY_BUTTON} **Playlist**:\n" + "\n".join([
+                    f"**{i}**. **🎸{x[1]}**\n   👤**Requested by:** {x[4]}"
+                    for i, x in enumerate(tplaylist)
                 ])
+            else:
+                pl = f"{emoji.PLAY_BUTTON} **Playlist**:\n" + "\n".join([
+                    f"**{i}**. **🎸{x[1]}**\n   👤**Requested by:** {x[4]}\n"
+                    for i, x in enumerate(playlist)
+                ])
+
         try:
             await query.edit_message_text(f"{emoji.PLAY_OR_PAUSE_BUTTON} Skipped\n\n{pl}",
-            reply_markup=InlineKeyboardMarkup(
-                [
+                disable_web_page_preview=True,
+                reply_markup=InlineKeyboardMarkup(
                     [
-                        InlineKeyboardButton("🔄", callback_data="replay"),
-                        InlineKeyboardButton("⏯", callback_data="pause"),
-                        InlineKeyboardButton("⏩", callback_data="skip")
-                            
-                    ],
-                ]
+                        [
+                            InlineKeyboardButton("🔄", callback_data="replay"),
+                            InlineKeyboardButton("⏯", callback_data="pause"),
+                            InlineKeyboardButton("⏩", callback_data="skip")
+                        ],
+                    ]
+                )
             )
-        )
-        except:
+        except MessageNotModified:
             pass
+
     elif query.data=="help":
         buttons = [
             [
-                InlineKeyboardButton('❤️ About Me ', url='https://t.me/AboutOxy'),
-                InlineKeyboardButton('🔥 My Owner', url='https://t.me/FallenAngel_xD'),
-            ],
-            [
-                InlineKeyboardButton('👨🏼‍💻 Developer', url='https://t.me/FallenAngel_xD'),
+                InlineKeyboardButton('❤️ About Me', url='https://t.me/AboutOxy'),
                 InlineKeyboardButton('🧩 Source', url='https://github.com/OxyNotOp/OxyVoiceBot'),
             ]
-            ]
+        ]
         reply_markup = InlineKeyboardMarkup(buttons)
-        await query.edit_message_text(
-            HELP,
-            reply_markup=reply_markup
 
-        )
+        try:
+            await query.edit_message_text(
+                HELP,
+                reply_markup=reply_markup
+
+            )
+        except MessageNotModified:
+            pass
 
