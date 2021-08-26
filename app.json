@@ -27,10 +27,6 @@
       "description": "Bot token of Bot, get from @Botfather",
       "required": true
     },
-    "ARQ_API": {
-      "description": "get it for free from @ARQRobot",
-      "required": false
-    },
     "SESSION_STRING": {
       "description": "Session string, read the README to learn how to export it with Pyrogram",
       "required": true
@@ -59,12 +55,12 @@
     },
     "STREAM_URL": {
       "description": "URL of Radio station or Youtube live video url to stream with /radio command",
-      "value": "https://youtu.be/OaaRPDa2a0U",
+      "value": "https://youtu.be/zcrUCvBD16k",
       "required": false
     },
     "REPLY_MESSAGE": {
       "description": "A reply message to those who message the USER account in PM. Make it blank if you do not need this feature.",
-      "value": "Hellow sir !... I am a bot to play music, not havimg time to chat with you.",
+      "value": "Helo Ser, Iam a bot to play music, not havimg time to chat with you.",
       "required": false
     }
   },
